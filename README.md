@@ -7,19 +7,19 @@ Conditional text-to-image generation has seen countless recent improvements in t
 <hr>
 
 ## Code
-We especially want to highlight the minimalistic amount of code that is necessary to run & train Paella. The entire code including training, sampling, architecture and utilities can fit in approx. 400 lines of code. We hope to make this method more accessible to more people this way.
+We especially want to highlight the minimalistic amount of code that is necessary to run & train Paella. The entire code including training, sampling, architecture and utilities can fit in approx. 400 lines of code. We hope to make this method more accessible to more people this way. In order to just understand the basic logic you can take a look at [paella_minimal.py](https://github.com/dome272/Paella/blob/main/paella_minimal.py).
 
 ## Sampling
 For sampling you can just take a look at the [sampling.ipynb](https://github.com/delicious-tasty/Paella/blob/main/paella_sampling.ipynb) notebook. :sunglasses:
 
 ## Train your own Paella
-The main file for training will be [paella.py](https://github.com/delicious-tasty/Paella/blob/main/paella.py). You can adjust all [hyperparameters](https://github.com/delicious-tasty/Paella/blob/main/paella.py#L322) to your own needs. During training we use webdataset, but you are free to replace that with your own custom dataloader. Just change the line on 119 in [paella.py](https://github.com/delicious-tasty/Paella/blob/main/paella.py#L119) to point to your own dataloader. Make sure it returns a tuple of ```(images, captions)``` where ```images``` is a ```torch.Tensor``` of shape ```batch_size x channels x height x width``` and captions is a ```List``` of length ```batch_size```. Now decide if you want to finetune Paella or start a new training from scratch:
+The main file for training will be [paella.py](https://github.com/dome272/Paella/blob/main/paella.py). You can adjust all [hyperparameters](https://github.com/dome272/Paella/blob/main/paella.py#L322) to your own needs. During training we use webdataset, but you are free to replace that with your own custom dataloader. Just change the line on 119 in [paella.py](https://github.com/dome272/Paella/blob/main/paella.py#L119) to point to your own dataloader. Make sure it returns a tuple of ```(images, captions)``` where ```images``` is a ```torch.Tensor``` of shape ```batch_size x channels x height x width``` and captions is a ```List``` of length ```batch_size```. Now decide if you want to finetune Paella or start a new training from scratch:
 ### From Scratch
 ```
 python3 paella.py
 ```
 ### Finetune
-If you want to finetune you first need to download the [latest checkpoint and it's optimizer state](epic_download_link.py), set the [finetune hyperparameter](https://github.com/delicious-tasty/Paella/blob/main/paella.py#L254) to ```True``` and create a folder ```models/<RUN_NAME>``` and move both checkpoints to this folder. After that you can also just run:
+If you want to finetune you first need to download the [latest checkpoint and it's optimizer state](epic_download_link.py), set the [finetune hyperparameter](https://github.com/dome272/Paella/blob/main/paella.py#L254) to ```True``` and create a folder ```models/<RUN_NAME>``` and move both checkpoints to this folder. After that you can also just run:
 ```
 python3 paella.py
 ```
