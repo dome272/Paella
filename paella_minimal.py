@@ -39,7 +39,7 @@ def train(proc_id, args):
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
-    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, steps_per_epoch=math.ceil(1000 / args.accum_grad), epochs=600, pct_start=30 / 300, div_factor=25, final_div_factor=1 / 25, anneal_strategy='linear')
+    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, total_stepss=args.total_steps, max_lr=lr, pct_start=0.1 if not args.finetune else 0.0, div_factor=25, final_div_factor=1 / 25, anneal_strategy='linear')
 
     losses, accuracies = [], []
     start_step, total_loss, total_acc = 0, 0, 0

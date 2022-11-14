@@ -63,10 +63,7 @@ def train(proc_id, args):
         os.makedirs(f"results/{args.run_name}", exist_ok=True)
         os.makedirs(f"models/{args.run_name}", exist_ok=True)
 
-    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr,
-                                              steps_per_epoch=math.ceil(1000 / args.accum_grad),
-                                              epochs=600, pct_start=30 / 300, div_factor=25,
-                                              final_div_factor=1 / 25, anneal_strategy='linear')
+    scheduler = optim.lr_scheduler.OneCycleLR(optimizer, total_stepss=args.total_steps, max_lr=lr, pct_start=0.1 if not args.finetune else 0.0, div_factor=25, final_div_factor=1 / 25, anneal_strategy='linear')
 
     if resume:
         if not proc_id and args.node_id == 0:
