@@ -19,7 +19,7 @@ The main file for training will be [paella.py](https://github.com/dome272/Paella
 python3 paella.py
 ```
 ### Finetune
-If you want to finetune you first need to download the [latest checkpoint and it's optimizer state](epic_download_link.py), set the [finetune hyperparameter](https://github.com/dome272/Paella/blob/main/paella.py#L254) to ```True``` and create a folder ```models/<RUN_NAME>``` and move both checkpoints to this folder. After that you can also just run:
+If you want to finetune you first need to download the [latest checkpoint and it's optimizer state](epic_download_link.py), set the [finetune hyperparameter](https://github.com/dome272/Paella/blob/main/paella.py#L251) to ```True``` and create a folder ```models/<RUN_NAME>``` and move both checkpoints to this folder. After that you can also just run:
 ```
 python3 paella.py
 ```
