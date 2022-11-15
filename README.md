@@ -10,6 +10,8 @@ Conditional text-to-image generation has seen countless recent improvements in t
 We especially want to highlight the minimalistic amount of code that is necessary to run & train Paella. The entire code including training, sampling, architecture and utilities can fit in approx. 400 lines of code. We hope to make this method more accessible to more people this way. In order to just understand the basic logic you can take a look at [paella_minimal.py](https://github.com/dome272/Paella/blob/main/paella_minimal.py).
 
 ## Sampling
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HH5Fey_mTiz29l9dGmHGqZqdzwLpLrxj?usp=sharing)
+
 For sampling you can just take a look at the [sampling.ipynb](https://github.com/delicious-tasty/Paella/blob/main/paella_sampling.ipynb) notebook. :sunglasses:
 
 ## Train your own Paella
