@@ -31,11 +31,11 @@ class ResBlock(nn.Module):
         )
         self.ln = ModulatedLayerNorm(c, channels_first=False)
         self.channelwise = nn.Sequential(
-            nn.Linear(c+c_skip, c_hidden),
+            nn.Linear(c + c_skip, c_hidden),
             nn.GELU(),
             nn.Linear(c_hidden, c),
         )
-        self.gamma = nn.Parameter(layer_scale_init_value * torch.ones(c),  requires_grad=True) if layer_scale_init_value > 0 else None
+        self.gamma = nn.Parameter(layer_scale_init_value * torch.ones(c), requires_grad=True) if layer_scale_init_value > 0 else None
         self.scaler = scaler
         if c_cond > 0:
             self.cond_mapper = nn.Linear(c_cond, c)
@@ -44,9 +44,14 @@ class ResBlock(nn.Module):
         res = x
         x = self.depthwise(x)
         if s is not None:
+            if s.size(2) == s.size(3) == 1:
+                s = s.expand(-1, -1, x.size(2), x.size(3))
+            elif s.size(2) != x.size(2) or s.size(3) != x.size(3):
+                s = nn.functional.interpolate(s, size=x.shape[-2:], mode='bilinear')
             s = self.cond_mapper(s.permute(0, 2, 3, 1))
-            if s.size(1) == s.size(2) == 1:
-                s = s.expand(-1, x.size(2), x.size(3), -1)
+            # s = self.cond_mapper(s.permute(0, 2, 3, 1))
+            # if s.size(1) == s.size(2) == 1:
+            #     s = s.expand(-1, x.size(2), x.size(3), -1)
         x = self.ln(x.permute(0, 2, 3, 1), s)
         if skip is not None:
             x = torch.cat([x, skip.permute(0, 2, 3, 1)], dim=-1)
@@ -63,6 +68,8 @@ class DenoiseUNet(nn.Module):
         super().__init__()
         self.num_labels = num_labels
         self.c_r = c_r
+        self.down_levels = down_levels
+        self.up_levels = up_levels
         c_levels = [c_hidden // (2 ** i) for i in reversed(range(len(down_levels)))]
         self.embedding = nn.Embedding(num_labels, c_levels[0])
 
@@ -72,7 +79,7 @@ class DenoiseUNet(nn.Module):
             blocks = []
             if i > 0:
                 blocks.append(nn.Conv2d(c_levels[i - 1], c_levels[i], kernel_size=4, stride=2, padding=1))
-            for j in range(num_blocks):
+            for _ in range(num_blocks):
                 block = ResBlock(c_levels[i], c_levels[i] * 4, c_clip + c_r)
                 block.channelwise[-1].weight.data *= np.sqrt(1 / sum(down_levels))
                 blocks.append(block)
@@ -107,6 +114,7 @@ class DenoiseUNet(nn.Module):
         return x, mask
 
     def gen_r_embedding(self, r, max_positions=10000):
+        dtype = r.dtype
         r = self.gamma(r) * max_positions
         half_dim = self.c_r // 2
         emb = math.log(max_positions) / (half_dim - 1)
@@ -115,13 +123,15 @@ class DenoiseUNet(nn.Module):
         emb = torch.cat([emb.sin(), emb.cos()], dim=1)
         if self.c_r % 2 == 1:  # zero pad
             emb = nn.functional.pad(emb, (0, 1), mode='constant')
-        return emb
+        return emb.to(dtype)
 
     def _down_encode_(self, x, s):
         level_outputs = []
         for i, blocks in enumerate(self.down_blocks):
             for block in blocks:
                 if isinstance(block, ResBlock):
+                    # s_level = s[:, 0]
+                    # s = s[:, 1:]
                     x = block(x, s)
                 else:
                     x = block(x)
@@ -133,6 +143,8 @@ class DenoiseUNet(nn.Module):
         for i, blocks in enumerate(self.up_blocks):
             for j, block in enumerate(blocks):
                 if isinstance(block, ResBlock):
+                    # s_level = s[:, 0]
+                    # s = s[:, 1:]
                     if i > 0 and j == 0:
                         x = block(x, s, level_outputs[i])
                     else:
@@ -144,7 +156,11 @@ class DenoiseUNet(nn.Module):
     def forward(self, x, c, r):  # r is a uniform value between 0 and 1
         r_embed = self.gen_r_embedding(r)
         x = self.embedding(x).permute(0, 3, 1, 2)
-        s = torch.cat([c, r_embed], dim=-1)[:, :, None, None]
+        if len(c.shape) == 2:
+            s = torch.cat([c, r_embed], dim=-1)[:, :, None, None]
+        else:
+            r_embed = r_embed[:, :, None, None].expand(-1, -1, c.size(2), c.size(3))
+            s = torch.cat([c, r_embed], dim=1)
         level_outputs = self._down_encode_(x, s)
         x = self._up_decode(level_outputs, s)
         x = self.clf(x)
