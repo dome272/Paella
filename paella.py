@@ -24,10 +24,7 @@ def train(proc_id, args):
     else:
         resume = False
     if not proc_id and args.node_id == 0:
-        if resume:
-            wandb.init(project="project", name=args.run_name, entity="your_entity", config=vars(args))
-        else:
-            wandb.init(project="project", name=args.run_name, entity="your_entity", config=vars(args))
+        wandb.init(project="project", name=args.run_name, entity="your_entity", config=vars(args))
         print(f"Starting run '{args.run_name}'....")
         print(f"Batch Size check: {args.n_nodes * args.batch_size * args.accum_grad * len(args.devices)}")
     parallel = len(args.devices) > 1
