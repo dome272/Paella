@@ -28,3 +28,6 @@ If you want to finetune you first need to download the [latest checkpoint and it
 ```
 python3 paella.py
 ```
+
+### License
+The model code and weights are released under the [MIT license](https://github.com/dome272/Paella/blob/main/LICENSE).
