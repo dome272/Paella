@@ -7,6 +7,7 @@ Conditional text-to-image generation has seen countless recent improvements in t
 <br>
 ![cover-figure](https://user-images.githubusercontent.com/117442814/201474789-a192f6ab-9626-4402-a3ec-81b8f3fd436c.png)
 
+Please find all details about the model and how it was trained in our [preprint paper on arxiv](https://arxiv.org/pdf/2211.07292.pdf).
 <hr>
 
 ## Code
