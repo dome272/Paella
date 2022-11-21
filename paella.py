@@ -19,15 +19,12 @@ from rudalle import get_vae
 
 
 def train(proc_id, args):
-    if os.path.exists(f"results/{args.run_name}/log.pt"):
+    if os.path.exists(f"results/{args.run_name}/log.pt") or args.finetune:
         resume = True
     else:
         resume = False
     if not proc_id and args.node_id == 0:
-        if resume:
-            wandb.init(project="project", name=args.run_name, entity="your_entity", config=vars(args))
-        else:
-            wandb.init(project="project", name=args.run_name, entity="your_entity", config=vars(args))
+        wandb.init(project="project", name=args.run_name, entity="your_entity", config=vars(args))
         print(f"Starting run '{args.run_name}'....")
         print(f"Batch Size check: {args.n_nodes * args.batch_size * args.accum_grad * len(args.devices)}")
     parallel = len(args.devices) > 1
@@ -66,23 +63,24 @@ def train(proc_id, args):
     scheduler = optim.lr_scheduler.OneCycleLR(optimizer, total_stepss=args.total_steps, max_lr=lr, pct_start=0.1 if not args.finetune else 0.0, div_factor=25, final_div_factor=1 / 25, anneal_strategy='linear')
 
     if resume:
-        if not proc_id and args.node_id == 0:
-            print("Loading last checkpoint....")
-        logs = torch.load(f"results/{args.run_name}/log.pt")
-        start_step = logs["step"] + 1
-        losses = logs["losses"]
-        accuracies = logs["accuracies"]
-        total_loss, total_acc = losses[-1] * start_step, accuracies[-1] * start_step
+        if args.finetune:
+            losses = []
+            accuracies = []
+            start_step, total_loss, total_acc = 0, 0, 0
+        else:
+            logs = torch.load(f"results/{args.run_name}/log.pt")
+            start_step = logs["step"] + 1
+            losses = logs["losses"]
+            accuracies = logs["accuracies"]
+            total_loss, total_acc = losses[-1] * start_step, accuracies[-1] * start_step
         model.load_state_dict(torch.load(f"models/{args.run_name}/model.pt", map_location=device))
-        if not proc_id and args.node_id == 0:
-            print("Loaded model.")
         opt_state = torch.load(f"models/{args.run_name}/optim.pt", map_location=device)
         last_lr = opt_state["param_groups"][0]["lr"]
         with torch.no_grad():
-            for _ in range(logs["step"]):
+            for _ in range(start_step-1):
                 scheduler.step()
         if not proc_id and args.node_id == 0:
-            print(f"Initialized scheduler")
+            print(f"Loaded Model & Initialized scheduler")
             print(f"Sanity check => Last-LR: {last_lr} == Current-LR: {optimizer.param_groups[0]['lr']} -> {last_lr == optimizer.param_groups[0]['lr']}")
         optimizer.load_state_dict(opt_state)
         del opt_state
