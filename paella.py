@@ -151,7 +151,7 @@ def train(proc_id, args):
                 image_indices = image_indices[:10]
                 captions = captions[:10]
                 text_embeddings = text_embeddings[:10]
-                sampled = sample(model.module, c=text_embeddings)[-1]
+                sampled = sample(model.module, c=text_embeddings)
                 sampled = decode(vqmodel, sampled)
                 recon_images = decode(vqmodel, image_indices)
 
@@ -169,7 +169,7 @@ def train(proc_id, args):
                     st = time.time()
                     for caption_embedding in cool_captions:
                         caption_embedding = caption_embedding[0].float().to(device)
-                        sampled_text = sample(model.module, c=caption_embedding)[-1]
+                        sampled_text = sample(model.module, c=caption_embedding)
                         sampled_text = decode(vqmodel, sampled_text)
                         sampled_text_ema = decode(vqmodel, sampled_text_ema)
                         for s, t in zip(sampled_text, sampled_text_ema):
