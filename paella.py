@@ -165,28 +165,19 @@ def train(proc_id, args):
 
                     cool_captions = DataLoader(TensorDataset(cool_captions_embeddings.repeat_interleave(n, dim=0)), batch_size=11)
                     cool_captions_sampled = []
-                    cool_captions_sampled_ema = []
                     st = time.time()
                     for caption_embedding in cool_captions:
                         caption_embedding = caption_embedding[0].float().to(device)
                         sampled_text = sample(model.module, c=caption_embedding)
                         sampled_text = decode(vqmodel, sampled_text)
-                        sampled_text_ema = decode(vqmodel, sampled_text_ema)
-                        for s, t in zip(sampled_text, sampled_text_ema):
+                        for s, t in sampled_text:
                             cool_captions_sampled.append(s.cpu())
-                            cool_captions_sampled_ema.append(t.cpu())
                     print(f"Took {time.time() - st} seconds to sample {len(cool_captions_text) * 2} captions.")
 
                     cool_captions_sampled = torch.stack(cool_captions_sampled)
                     torchvision.utils.save_image(
                         torchvision.utils.make_grid(cool_captions_sampled, nrow=11),
                         os.path.join(f"results/{args.run_name}", f"cool_captions_{step:03d}.png")
-                    )
-
-                    cool_captions_sampled_ema = torch.stack(cool_captions_sampled_ema)
-                    torchvision.utils.save_image(
-                        torchvision.utils.make_grid(cool_captions_sampled_ema, nrow=11),
-                        os.path.join(f"results/{args.run_name}", f"cool_captions_{step:03d}_ema.png")
                     )
 
                 log_images = torch.cat([
@@ -198,12 +189,12 @@ def train(proc_id, args):
             torchvision.utils.save_image(log_images, os.path.join(f"results/{args.run_name}", f"{step:03d}.png"))
 
             log_data = [[captions[i]] + [wandb.Image(sampled[i])] + [wandb.Image(images[i])] + [wandb.Image(recon_images[i])] for i in range(len(captions))]
-            log_table = wandb.Table(data=log_data, columns=["Caption", "Image", "EMA", "Orig", "Recon"])
+            log_table = wandb.Table(data=log_data, columns=["Caption", "Image", "Orig", "Recon"])
             wandb.log({"Log": log_table})
 
             if args.log_captions:
-                log_data_cool = [[cool_captions_text[i]] + [wandb.Image(cool_captions_sampled[i])] + [wandb.Image(cool_captions_sampled_ema[i])] for i in range(len(cool_captions_text))]
-                log_table_cool = wandb.Table(data=log_data_cool, columns=["Caption", "Image", "EMA Image"])
+                log_data_cool = [[cool_captions_text[i]] + [wandb.Image(cool_captions_sampled[i])] for i in range(len(cool_captions_text))]
+                log_table_cool = wandb.Table(data=log_data_cool, columns=["Caption", "Image"])
                 wandb.log({"Log Cool": log_table_cool})
                 del sampled_text, log_data_cool
 
