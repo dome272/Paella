@@ -1,20 +1,16 @@
 import os
 import torch
-from torch.utils.data import TensorDataset, DataLoader
 import wandb
 from torch import nn, optim
 import torchvision
 from tqdm import tqdm
-import time
 import numpy as np
 import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
-# from vq import VQModel
 from modules import DenoiseGIC, DenoiseUNet
 from utils import get_dataloader, encode, decode, sample
 import open_clip
-from open_clip import tokenizer
 from rudalle import get_vae
 
 
@@ -33,7 +29,7 @@ def train(proc_id, args):
     if parallel:
         torch.cuda.set_device(proc_id)
         torch.backends.cudnn.benchmark = True
-        dist.init_process_group(backend="nccl", init_method="file:///fsx/mas/paella_unet/dist_file",
+        dist.init_process_group(backend="nccl", init_method="file:///fsx/mas/paella_unet/dist_file2",
                                 world_size=args.n_nodes * len(args.devices),
                                 rank=proc_id + len(args.devices) * args.node_id)
         torch.set_num_threads(6)
@@ -52,15 +48,17 @@ def train(proc_id, args):
         print(f"Number of Parameters: {sum([p.numel() for p in model.parameters()])}")
 
     clip_model, _, _ = open_clip.create_model_and_transforms('ViT-H-14', pretrained='laion2b_s32b_b79k', cache_dir="/fsx/mas/.cache")
-    del clip_model.visual
     clip_model = clip_model.to(device).eval().requires_grad_(False)
+    clip_preprocess = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(224, interpolation=torchvision.transforms.InterpolationMode.BICUBIC),
+        torchvision.transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
+                                         std=(0.26862954, 0.26130258, 0.27577711)),
+    ])
 
-    lr = 3e-4
+    lr = 1e-4
     dataset = get_dataloader(args)
     optimizer = optim.AdamW(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    grad_scaler = torch.cuda.amp.GradScaler()
-    grad_norm = torch.tensor(0, device=device)
 
     grad_accum_steps = args.accum_grad
     scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr, total_steps=args.total_steps, pct_start=0.03,
@@ -79,13 +77,8 @@ def train(proc_id, args):
         if not proc_id and args.node_id == 0:
             print("Loaded model.")
         opt_state = torch.load(f"models/{args.run_name}/optim.pt", map_location=device)
-        if os.path.exists(f"models/{args.run_name}/scaler.pt"):
-            grad_scaler_state = torch.load(f"models/{args.run_name}/scaler.pt", map_location=device)
-            grad_scaler.load_state_dict(grad_scaler_state)
-            del grad_scaler_state
         last_lr = opt_state["param_groups"][0]["lr"]
         with torch.no_grad():
-            # while last_lr > optimizer.param_groups[0]["lr"]:
             for _ in range(logs["step"]):
                 scheduler.step()
         if not proc_id and args.node_id == 0:
@@ -118,26 +111,17 @@ def train(proc_id, args):
             noised_indices, mask = model.module.add_noise(image_indices, r)
 
             if np.random.rand() < 0.1:  # 10% of the times...
-                text_embeddings = images.new_zeros(images.size(0), 1024)
+                img_embeddings = images.new_zeros(images.size(0), 1024)
             else:
-                text_tokens = tokenizer.tokenize(captions)
-                text_tokens = text_tokens.to(device)
-                text_embeddings = clip_model.encode_text(text_tokens).float()
+                img_embeddings = clip_model.encode_image(clip_preprocess(images)).float()
 
-        # with torch.cuda.amp.autocast():
-        pred = model(noised_indices, text_embeddings, r)
+        pred = model(noised_indices, img_embeddings, r)
         loss = criterion(pred, image_indices)
         loss_adjusted = loss / grad_accum_steps
 
         loss_adjusted.backward()
-        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 5).item()
-        # grad_scaler.scale(loss_adjusted).backward()
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1).item()
         if (step + 1) % grad_accum_steps == 0:
-            # grad_scaler.unscale_(optimizer)
-            # grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0).item()
-            # grad_scaler.step(optimizer)
-            # grad_scaler.update()
-
             optimizer.step()
             scheduler.step()
             optimizer.zero_grad()
@@ -174,40 +158,9 @@ def train(proc_id, args):
 
             model.eval()
             with torch.no_grad():
-                # with torch.cuda.amp.autocast():
-                n = 1
-                images = images
-                image_indices = image_indices
-                captions = captions
-                text_embeddings = text_embeddings
-                sampled = sample(model.module, c=text_embeddings)
+                sampled = sample(model.module, c=img_embeddings)
                 sampled = decode(vqmodel, sampled)
                 recon_images = decode(vqmodel, image_indices)
-
-                if args.log_captions:
-                    cool_captions_data = torch.load("cool_captions.pth")
-                    cool_captions_text = cool_captions_data["captions"]
-
-                    text_tokens = tokenizer.tokenize(cool_captions_text)
-                    text_tokens = text_tokens.to(device)
-                    cool_captions_embeddings = clip_model.encode_text(text_tokens).float()
-
-                    cool_captions = DataLoader(TensorDataset(cool_captions_embeddings.repeat_interleave(n, dim=0)), batch_size=4)
-                    cool_captions_sampled = []
-                    st = time.time()
-                    for caption_embedding in cool_captions:
-                        caption_embedding = caption_embedding[0].float().to(device)
-                        sampled_text = sample(model.module, c=caption_embedding)
-                        sampled_text = decode(vqmodel, sampled_text)
-                        for s in sampled_text:
-                            cool_captions_sampled.append(s.cpu())
-                    print(f"Took {time.time() - st} seconds to sample {len(cool_captions_text)} captions.")
-
-                    cool_captions_sampled = torch.stack(cool_captions_sampled)
-                    torchvision.utils.save_image(
-                        torchvision.utils.make_grid(cool_captions_sampled, nrow=11),
-                        os.path.join(f"results/{args.run_name}", f"cool_captions_{step:03d}.png")
-                    )
 
                 log_images = torch.cat([
                     torch.cat([i for i in sampled.cpu()], dim=-1),
@@ -221,12 +174,6 @@ def train(proc_id, args):
             log_table = wandb.Table(data=log_data, columns=["Caption", "Image", "Orig", "Recon"])
             wandb.log({"Log": log_table})
 
-            if args.log_captions:
-                log_data_cool = [[cool_captions_text[i]] + [wandb.Image(cool_captions_sampled[i])] for i in range(len(cool_captions_text))]
-                log_table_cool = wandb.Table(data=log_data_cool, columns=["Caption", "Image"])
-                wandb.log({"Log Cool": log_table_cool})
-                del sampled_text, log_data_cool
-
             del sampled, log_data
 
             if step % args.extra_ckpt == 0:
@@ -238,7 +185,7 @@ def train(proc_id, args):
             torch.save(grad_scaler.state_dict(), f"models/{args.run_name}/scaler.pt")
             torch.save({'step': step, 'losses': losses, 'accuracies': accuracies, 'wandb_run_id': run_id}, f"results/{args.run_name}/log.pt")
 
-        del images, image_indices, r, text_embeddings
+        del images, image_indices, r, img_embeddings
         del noised_indices, mask, pred, loss, loss_adjusted, acc
 
 
@@ -256,25 +203,26 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    args.run_name = "Paella_1B_deep_no_mp"
+    args.run_name = "Paella_1B_img"
     args.model = "UNet"
     args.dataset_type = "webdataset"
-    args.total_steps = 1_001_000
-    args.batch_size = 14
-    args.image_size = 256
+    args.total_steps = 2_001_000
+    args.batch_size = 16
+    args.image_size = 512
     args.num_workers = 10
     args.log_period = 2000
     args.extra_ckpt = 50_000
     args.accum_grad = 1
     args.num_codebook_vectors = 8192  # 1024
-    args.log_captions = True
+    args.log_captions = False
 
     args.n_nodes = 16
     args.node_id = int(os.environ["SLURM_PROCID"])
     args.devices = [0, 1, 2, 3, 4, 5, 6, 7]
 
     # args.dataset_path = "pipe:aws s3 cp s3://s-laion/improved-aesthetics-laion-2B-en-subsets/aesthetics_tars/{000000..060207}.tar -"
-    args.dataset_path = "pipe:aws s3 cp s3://deep-floyd-s3/datasets/{laion_cleaned-part1/{00000..79752}.tar,laion_cleaned-part2/{00000..94330}.tar,laion_cleaned-part3/{00000..94336}.tar,laion_cleaned-part4/{00000..94340}.tar,laion_cleaned-part5/{00000..94333}.tar,laion_cleaned-part6/{00000..77178}.tar} -"
+    # args.dataset_path = "pipe:aws s3 cp s3://deep-floyd-s3/datasets/{laion_cleaned-part1/{00000..79752}.tar,laion_cleaned-part2/{00000..94330}.tar,laion_cleaned-part3/{00000..94336}.tar,laion_cleaned-part4/{00000..94340}.tar,laion_cleaned-part5/{00000..94333}.tar,laion_cleaned-part6/{00000..77178}.tar} -"
+    args.dataset_path = "pipe:aws s3 cp s3://stability-aws/laion-a-native/{part-0/{00000..18699}.tar,part-1/{00000..18699}.tar,part-2/{00000..18699}.tar,part-3/{00000..18699}.tar,part-4/{00000..18699}.tar} -"
     # args.dataset_path = "pipe:aws s3 cp s3://s-datasets/laion-high-resolution/{00000..17535}.tar -"
     print("Launching with args: ", args)
     launch(
