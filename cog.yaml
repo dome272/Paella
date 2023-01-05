@@ -1,0 +1,18 @@
+build:
+  gpu: true
+  cuda: "11.3"
+  python_version: 3.8
+  system_packages:
+    - libgl1-mesa-glx
+    - libglib2.0-0
+  python_packages:
+    - torch==1.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+    - imageio==2.9.0
+    - einops==0.3.2
+    - rudalle==1.1.3
+    - open-clip-torch==2.7.0
+  run:
+    - git clone https://github.com/pabloppp/pytorch-tools.git
+    - pip3 install -e pytorch-tools
+
+predict: "predict.py:OutpaintingPredictor"
