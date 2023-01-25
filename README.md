@@ -1,6 +1,6 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HH5Fey_mTiz29l9dGmHGqZqdzwLpLrxj?usp=sharing)
 [![Huggingface Space](https://img.shields.io/badge/🤗-Huggingface%20Space-cyan.svg)](https://huggingface.co/spaces/pcuenq/paella)
-
+<a href="https://replicate.com/arielreplicate/paella_fast_text2image"><img src="https://replicate.com/arielreplicate/paella_fast_text2image/badge"></a>
 # Paella
 Conditional text-to-image generation has seen countless recent improvements in terms of quality, diversity and fidelity. Nevertheless, most state-of-the-art models require numerous inference steps to produce faithful generations, resulting in performance bottlenecks for end-user applications. In this paper we introduce Paella, a novel text-to-image model requiring less than 10 steps to sample high-fidelity images, using a speed-optimized architecture allowing to sample a single image in less than 500 ms, while having 573M parameters. The model operates on a compressed & quantized latent space, it is conditioned on CLIP embeddings and uses an improved sampling function over previous works. Aside from text-conditional image generation, our model is able to do latent space interpolation and image manipulations such as inpainting, outpainting, and structural editing.
 <br>
@@ -9,6 +9,11 @@ Conditional text-to-image generation has seen countless recent improvements in t
 
 Please find all details about the model and how it was trained in our [preprint paper on arxiv](https://arxiv.org/pdf/2211.07292.pdf).
 <hr>
+
+## Replicate demos
+Run this model online:
+
+[[Img2Img]](https://replicate.com/arielreplicate/paella_fast_text2image) |  [[Outpainting]](https://replicate.com/arielreplicate/paella_fast_outpainting) | [[Image variation]](https://replicate.com/arielreplicate/paella_fast_image_variation) | [[Image interpolation]](https://replicate.com/arielreplicate/paella_fast_image_interpolation) 
 
 ## Code
 We especially want to highlight the minimalistic amount of code that is necessary to run & train Paella. The entire code including training, sampling, architecture and utilities can fit in approx. 400 lines of code. We hope to make this method more accessible to more people this way. In order to just understand the basic logic you can take a look at [paella_minimal.py](https://github.com/dome272/Paella/blob/main/paella_minimal.py).
