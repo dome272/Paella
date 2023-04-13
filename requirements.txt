@@ -1,0 +1,8 @@
+tqdm
+wandb
+numpy
+torch
+torchvision
+transformers
+warmup_scheduler
+git+https://github.com/pabloppp/pytorch-tools
