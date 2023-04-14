@@ -7,12 +7,32 @@ Conditional text-to-image generation has seen countless recent improvements in t
 <br>
 ![collage](https://user-images.githubusercontent.com/61938694/231021615-38df0a0a-d97e-4f7a-99d9-99952357b4b1.png)
 
+## Update 12.04
+Since the paper-release we worked intensively to bring Paella to a similar level as other 
+state-of-the-art models. With this release we are coming a step closer to that goal. However, our main intention is not
+to make the greatest text-to-image model out there (at least for now), it is to bring text-to-image models closer
+to people outside the field on a technical level. For example, a lot of models have codebases with many thousand lines 
+of code, that make it very hard for people to dive into the code and easily understand it. And that is the contribution
+we are the proudest of with Paella. The training and sampling code for Paella is minimalistic and can be understood in 
+a few minutes, making further extensions, quick tests, idea testing etc. extremely fast. For instance, the entire
+sampling code can be written in just **12 lines** of code.
+
 
 Please find all details about the model and how it was trained in our [preprint paper on arxiv](https://arxiv.org/pdf/2211.07292.pdf).
 <hr>
 
 ## Code
-We especially want to highlight the minimalistic amount of code that is necessary to run & train Paella. The entire code including training, sampling, architecture and utilities can fit in approx. 400 lines of code. We hope to make this method more accessible to more people this way. In order to just understand the basic logic you can take a look at [paella_minimal.py](https://github.com/dome272/Paella/blob/main/paella_minimal.py).
+We especially want to highlight the minimalistic amount of code that is necessary to run & train Paella. 
+The training & sampling code can fit in under 140 lines of code. We hope to the field of generative AI and especially 
+text-to-image more accessible to more people this way. In order to just understand the basic logic you can take a look 
+at the [main folder](https://github.com/dome272/Paella/tree/main/src). For a more advanced training script, 
+including mixed precision, distributed training, better logging and all conditioning models you can take a look at the 
+[distributed folder](https://github.com/dome272/Paella/tree/main/src_distributed).
+
+## Models
+| Model           | Download                                             | Parameters      | Conditioning                       |
+|-----------------|------------------------------------------------------|-----------------|------------------------------------|
+| Paella v3       | [Huggingface](https://huggingface.co/dome272/Paella) | 1B (+1B prior)  | ByT5-XL, CLIP-H-Text, CLIP-H-Image |
 
 ## Sampling
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HH5Fey_mTiz29l9dGmHGqZqdzwLpLrxj?usp=sharing)

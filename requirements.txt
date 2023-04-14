@@ -2,7 +2,12 @@ tqdm
 wandb
 numpy
 torch
+Pillow
+requests
+matplotlib
 torchvision
 transformers
+open_clip_torch
 warmup_scheduler
 git+https://github.com/pabloppp/pytorch-tools
+git+https://github.com/pabloppp/Arroz-Con-Cosas
