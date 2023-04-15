@@ -35,9 +35,9 @@ including mixed precision, distributed training, better logging and all conditio
 | Paella v3       | [Huggingface](https://huggingface.co/dome272/Paella) | 1B (+1B prior)  | ByT5-XL, CLIP-H-Text, CLIP-H-Image |
 
 ## Sampling
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HH5Fey_mTiz29l9dGmHGqZqdzwLpLrxj?usp=sharing)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1geY_Z8m8dyjrky6uwiMepwySTWkVYl1j?usp=sharing)
 
-For sampling you can just take a look at the [sampling.ipynb](https://github.com/delicious-tasty/Paella/blob/main/paella_sampling.ipynb) notebook. :sunglasses:
+For sampling you can just take a look at the [sampling.ipynb](https://github.com/dome272/Paella/blob/main/paella_inference.ipynb) notebook. :sunglasses:
 
 ## Train your own Paella
 The main file for training will be [paella.py](https://github.com/dome272/Paella/blob/main/paella.py). You can adjust all [hyperparameters](https://github.com/dome272/Paella/blob/main/paella.py#L322) to your own needs. During training we use webdataset, but you are free to replace that with your own custom dataloader. Just change the line on 119 in [paella.py](https://github.com/dome272/Paella/blob/main/paella.py#L119) to point to your own dataloader. Make sure it returns a tuple of ```(images, captions)``` where ```images``` is a ```torch.Tensor``` of shape ```batch_size x channels x height x width``` and captions is a ```List``` of length ```batch_size```. Now decide if you want to finetune Paella or start a new training from scratch:
