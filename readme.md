@@ -1,5 +1,5 @@
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HH5Fey_mTiz29l9dGmHGqZqdzwLpLrxj?usp=sharing)
-[![Huggingface Space](https://img.shields.io/badge/🤗-Huggingface%20Space-cyan.svg)](https://huggingface.co/spaces/pcuenq/paella)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1geY_Z8m8dyjrky6uwiMepwySTWkVYl1j?usp=sharing)
+![LAION Blog Post](https://user-images.githubusercontent.com/61938694/232235929-94dacf4a-b3f6-4359-901b-500781f55c12.png)
 
 # Paella
 Conditional text-to-image generation has seen countless recent improvements in terms of quality, diversity and fidelity. Nevertheless, most state-of-the-art models require numerous inference steps to produce faithful generations, resulting in performance bottlenecks for end-user applications. In this paper we introduce Paella, a novel text-to-image model requiring less than 10 steps to sample high-fidelity images, using a speed-optimized architecture allowing to sample a single image in less than 500 ms, while having 573M parameters. The model operates on a compressed & quantized latent space, it is conditioned on CLIP embeddings and uses an improved sampling function over previous works. Aside from text-conditional image generation, our model is able to do latent space interpolation and image manipulations such as inpainting, outpainting, and structural editing.
@@ -37,19 +37,24 @@ including mixed precision, distributed training, better logging and all conditio
 ## Sampling
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1geY_Z8m8dyjrky6uwiMepwySTWkVYl1j?usp=sharing)
 
-For sampling you can just take a look at the [sampling.ipynb](https://github.com/dome272/Paella/blob/main/paella_inference.ipynb) notebook. :sunglasses:
+For sampling, you can just take a look at the [sampling.ipynb](https://github.com/dome272/Paella/blob/main/paella_inference.ipynb) notebook. :sunglasses: <br>
+**Note**: Since we condition on ByT5-XL, CLIP-H-Text, CLIP-H-Image, sampling with the model takes at least 30GB of RAM,
+unfortunately. We are hoping to use smaller conditioning models in the future.
 
 ## Train your own Paella
-The main file for training will be [paella.py](https://github.com/dome272/Paella/blob/main/paella.py). You can adjust all [hyperparameters](https://github.com/dome272/Paella/blob/main/paella.py#L322) to your own needs. During training we use webdataset, but you are free to replace that with your own custom dataloader. Just change the line on 119 in [paella.py](https://github.com/dome272/Paella/blob/main/paella.py#L119) to point to your own dataloader. Make sure it returns a tuple of ```(images, captions)``` where ```images``` is a ```torch.Tensor``` of shape ```batch_size x channels x height x width``` and captions is a ```List``` of length ```batch_size```. Now decide if you want to finetune Paella or start a new training from scratch:
-### From Scratch
-```
-python3 paella.py
-```
-### Finetune
-If you want to finetune you first need to download the [latest checkpoint and it's optimizer state](https://drive.google.com/drive/folders/1ADAV-WPhMKGnm2w0bTO4HKhv6yoHB0Co), set the [finetune hyperparameter](https://github.com/dome272/Paella/blob/main/paella.py#L249) to ```True``` and create a folder ```models/<RUN_NAME>``` and move both checkpoints to this folder. After that you can also just run:
-```
-python3 paella.py
-```
+Depending on how you want to train Paella, we provided code for running it on a 
+[single-GPU](https://github.com/dome272/Paella/tree/main/src) or for 
+[multiple-GPU / multi-node training](https://github.com/dome272/Paella/tree/main/src_distributed).
+The main file for training is [train.py](https://github.com/dome272/Paella/blob/main/src/train.py). You can adjust all 
+[hyperparameters](https://github.com/dome272/Paella/blob/main/src/train.py#L10) to your own needs. 
+In the distributed training code we provided a [webdataset](https://github.com/webdataset/webdataset/) dataloader,
+whereas in the single-GPU code you have to set your [own dataloader](https://github.com/dome272/Paella/blob/main/src/utils.py#L19).
+Make sure it returns a tuple of ```(images, captions)``` where ```images``` is a ```torch.Tensor``` of shape 
+```batch_size x channels x height x width``` and captions is a ```List``` of length ```batch_size```. To start the
+training you can just run ```python3 paella.py``` for the single-GPU case and for the multi-GPU case we provided a
+[slurm](https://slurm.schedmd.com/documentation.html) script for launching the training you can find 
+[here](https://github.com/dome272/Paella/blob/main/src_distributed/run/run.sh).
+
 
 ### License
 The model code and weights are released under the [MIT license](https://github.com/dome272/Paella/blob/main/LICENSE).
