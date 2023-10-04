@@ -19,7 +19,7 @@ a few minutes, making further extensions, quick tests, idea testing etc. extreme
 sampling code can be written in just **12 lines** of code.
 
 
-Please find all details about the model and how it was trained in our [preprint paper on arxiv](https://arxiv.org/pdf/2211.07292.pdf).
+Please find all details about the model and how it was trained in our [paper on arxiv](https://arxiv.org/abs/2211.07292v2).
 <hr>
 
 ## Code
